@@ -1,0 +1,191 @@
+---
+title: "ds202_lab4"
+author: "Jonathan DeGardner"
+date: "10/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(tidyr)
+
+defense <- read_excel('C:\\Users\\Jonny DeGardner\\Desktop\\Cawlige\\S.S1\\DS 202\\ds202_lab4\\cyclonesFootball2019.xlsx', sheet='Defensive')
+
+offense <- read_excel('C:\\Users\\Jonny DeGardner\\Desktop\\Cawlige\\S.S1\\DS 202\\ds202_lab4\\cyclonesFootball2019.xlsx', sheet='Offensive')
+
+bio <- read_excel('C:\\Users\\Jonny DeGardner\\Desktop\\Cawlige\\S.S1\\DS 202\\ds202_lab4\\cyclonesFootball2019.xlsx', sheet='Biography')
+```
+
+## Part One: Cleaning Data
+```{r}
+defClean <- defense %>%
+  mutate(Name = as.factor(Name),
+         Opponent_Opponent = as.factor(Opponent_Opponent),
+         Tackles_Solo = as.numeric(Tackles_Solo),
+         Tackles_ASST = as.numeric(Tackles_ASST),
+         Tackles_TFL = as.numeric(Tackles_TFL),
+         Tackles_Sack = as.numeric(Tackles_Sack),
+         Turnover_FF = as.numeric(Turnover_FF),
+         Turnover_FR = as.numeric(Turnover_FR),
+         Turnover_INT = as.numeric(Turnover_INT),
+         Pass_QBH = as.numeric(Pass_QBH),
+         Pass_PB = as.numeric(Pass_PB))
+str(defClean)
+
+offClean <- offense %>%
+  mutate(Name = as.factor(Name),
+         Opponent_Opponent = as.factor(Opponent_Opponent),
+         Rushing_ATT = as.numeric(Rushing_ATT),
+         Rushing_YDS = as.numeric(Rushing_YDS),
+         Rushing_TD = as.numeric(Rushing_TD),
+         Receiving_REC = as.numeric(Receiving_REC),
+         Receiving_YDS = as.numeric(Receiving_YDS),
+         Receiving_TD = as.numeric(Receiving_TD),
+         `Passing_CMP-ATT` = as.numeric(`Passing_CMP-ATT`),
+         Passing_YDS = as.numeric(Passing_YDS),
+         Passing_TD = as.numeric(Passing_TD),
+         Passing_INT = as.numeric(Passing_INT))
+str(offClean)
+
+bioClean <- bio %>%
+  separate(Height, c('Feet', 'Inches'), '-', convert=TRUE) %>%
+  mutate(Name = as.factor(Name),
+         Position = as.factor(Position),
+         Feet = as.numeric(Feet),
+         Inches = as.numeric(Inches),
+         Weight = as.numeric(Weight),
+         Class = as.factor(Class),
+         Hometown = as.factor(Hometown),
+         Highschool = as.factor(Highschool))
+str(bioClean)
+```
+
+## Part Two: Tidying
+#### Question 1
+```{r}
+defClean2 <- defClean %>%
+  pivot_longer(Tackles_Solo:Pass_PB, names_to='stat')
+```
+
+#### Question 2
+```{r}
+ggplot(defClean2, aes(x=stat, y=value)) + geom_bar(stat='identity', width=.75, color='red') + theme(axis.text.x = element_text(angle=90))
+```
+
+The three least common defensive skills are: Turnover_FF (fumble forced), Turnover_FR (fumble recovery), and Turnover_INT (interception).
+
+#### Question 3
+```{r}
+iowa <- defClean %>%
+  filter(Opponent_Opponent=='Iowa') %>%
+  ggplot(aes(x=Name, y=Tackles_Solo)) + geom_point() + theme(axis.text.x = element_text(angle=90))
+iowa
+
+nd <- defClean %>%
+  filter(Opponent_Opponent=='Notre Dame') %>%
+  ggplot(aes(x=Name, y=Tackles_Solo)) + geom_point() + theme(axis.text.x = element_text(angle=90))
+nd
+```
+
+ISU had a better defense against Notre Dame, as there are more players with a larger amount of solo tackles in this game.
+
+#### Question 4
+```{r}
+sep <- bioClean %>%
+  separate(Hometown, c('City', 'State'), sep = ',')
+head(sep)
+```
+
+#### Question 5
+```{r}
+sep %>%
+  count(State)
+```
+
+ISU football players are from 19 different states. The table above shows how many players are from each state.
+
+## Part Three: Joining Data Frame
+#### Question 1
+```{r}
+def_state <- inner_join(x=defClean, y=sep)
+def_state %>%
+  count(State)
+
+off_state <- inner_join(x=offClean, y=sep)
+off_state %>%
+  count(State)
+```
+
+The first table shows the count of defensive ISU football players from each state.
+The second table shows the count of offensive ISU football players from each state.
+
+#### Question 2
+```{r}
+p3q2 <- full_join(x=offClean, y=defClean)
+purdy <- p3q2 %>%
+  filter(Name == 'Purdy, Brock')
+
+rest <- p3q2 %>%
+  filter(Name != 'Purdy, Brock')
+
+ggplot(purdy, aes(x=Opponent_Opponent, y=Rushing_TD)) + geom_bar(stat='identity', width=.75, color='blue') + theme(axis.text.x = element_text(angle=90))
+ggplot(purdy, aes(x=Opponent_Opponent, y=Passing_TD)) + geom_bar(stat='identity', width=.75, color='blue') + theme(axis.text.x = element_text(angle=90))
+
+ggplot(rest, aes(x=Opponent_Opponent, y=Rushing_TD)) + geom_bar(stat='identity', width=.75, color='blue') + theme(axis.text.x = element_text(angle=90))
+ggplot(rest, aes(x=Opponent_Opponent, y=Receiving_YDS)) + geom_bar(stat='identity', width=.75, color='blue') + theme(axis.text.x = element_text(angle=90))
+ggplot(rest, aes(x=Opponent_Opponent, y=Turnover_INT)) + geom_bar(stat='identity', width=.75, color='blue') + theme(axis.text.x = element_text(angle=90))
+ggplot(rest, aes(x=Opponent_Opponent, y=Tackles_Sack)) + geom_bar(stat='identity', width=.75, color='blue') + theme(axis.text.x = element_text(angle=90))
+
+```
+
+#### Question 3
+```{r}
+defense2018 <- read_excel('C:\\Users\\Jonny DeGardner\\Desktop\\Cawlige\\S.S1\\DS 202\\ds202_lab4\\cyclonesFootball2018.xlsx', sheet='Defensive')
+defClean2018 <- defense2018 %>%
+  mutate(Name = as.factor(Name),
+         Opponent_Opponent = as.factor(Opponent_Opponent),
+         Tackles_Solo = as.numeric(Tackles_Solo),
+         Tackles_ASST = as.numeric(Tackles_ASST),
+         Tackles_TFL = as.numeric(Tackles_TFL),
+         Tackles_Sack = as.numeric(Tackles_Sack),
+         Turnover_FF = as.numeric(Turnover_FF),
+         Turnover_FR = as.numeric(Turnover_FR),
+         Turnover_INT = as.numeric(Turnover_INT),
+         Pass_QBH = as.numeric(Pass_QBH),
+         Pass_PB = as.numeric(Pass_PB))
+
+offense2018 <- read_excel('C:\\Users\\Jonny DeGardner\\Desktop\\Cawlige\\S.S1\\DS 202\\ds202_lab4\\cyclonesFootball2018.xlsx', sheet='Offensive')
+offClean2018 <- offense2018 %>%
+  mutate(Name = as.factor(Name),
+         Opponent_Opponent = as.factor(Opponent_Opponent),
+         Rushing_ATT = as.numeric(Rushing_ATT),
+         Rushing_YDS = as.numeric(Rushing_YDS),
+         Rushing_TD = as.numeric(Rushing_TD),
+         Receiving_REC = as.numeric(Receiving_REC),
+         Receiving_YDS = as.numeric(Receiving_YDS),
+         Receiving_TD = as.numeric(Receiving_TD),
+         `Passing_CMP-ATT` = as.numeric(`Passing_CMP-ATT`),
+         Passing_YDS = as.numeric(Passing_YDS),
+         Passing_TD = as.numeric(Passing_TD),
+         Passing_INT = as.numeric(Passing_INT))
+
+
+defClean2018_2 <- defClean2018 %>%
+  pivot_longer(Tackles_Solo:Pass_PB, names_to='stat')
+defClean2 <- defClean %>%
+  pivot_longer(Tackles_Solo:Pass_PB, names_to='stat')
+offClean2018 <- offClean2018 %>%
+  pivot_longer(Receiving_REC:Passing_INT, names_to='stat')
+offClean2 <- offClean %>%
+  pivot_longer(Receiving_REC:Passing_INT, names_to='stat')
+
+ggplot(defClean2018_2, aes(x=Name, y=value)) + geom_bar(stat='identity', width=.75, color='blue') + theme(axis.text.x = element_text(angle=90))
+ggplot(defClean2, aes(x=Name, y=value)) + geom_bar(stat='identity', width=.75, color='blue') + theme(axis.text.x = element_text(angle=90))
+ggplot(offClean2018, aes(x=Name, y=value)) + geom_bar(stat='identity', width=.75, color='red') + theme(axis.text.x = element_text(angle=90))
+ggplot(offClean2, aes(x=Name, y=value)) + geom_bar(stat='identity', width=.75, color='red') + theme(axis.text.x = element_text(angle=90))
+```
+
